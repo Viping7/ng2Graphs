@@ -3,38 +3,43 @@ import {
 }
 from '@angular/core';
 import * as d3 from 'd3';
-
+var height=500;
+var width=500;
 @Component({
 	selector: 'app-graph',
 	templateUrl: './graph.component.html',
 	styleUrls: ['./graph.component.css']
 })
 export class GraphComponent implements AfterViewInit {
-
-	data = [{
+    data = [{
 		val: 10
                 }, {
 		val: 30
                 }, {
 		val: 60
                 }];
-	constructor(private el: ElementRef, private zone: NgZone) {}
+	constructor(private el: ElementRef, private zone: NgZone) {
+        
+    }
+    
+	canvas = d3.select(this.el.nativeElement).append('svg').attr('width', width+20).attr('height', height+20);
 	@Input() graphType; 
 	changeData() {
-		this.data = [{
-			val: Math.random() * 100
+        d3.selectAll('g').remove('g');
+        this.data = [{
+			val: Math.random() * 1000
                 }, {
-			val: Math.random() * 100
+			val: Math.random() * 1000
                 }, {
-			val: Math.random() * 100
+			val: Math.random() * 1000
                 }];
 		this.zone.run(() => {
 			this.loadGraph()
 		});
 	}
-	canvas = d3.select(this.el.nativeElement).append('svg').attr('width', '100%').attr('height', 224);
 
 	loadGraph() {
+        console.log(this.data);
 		var perdata = this.data;
 		if(this.graphType=='dial'){
 		var data = [[{
@@ -142,13 +147,69 @@ export class GraphComponent implements AfterViewInit {
 			});
 		}
 	}
-else{
-if(this.graphType=='line'){
-	var group=this.canvas.append('g').attr("transform","translate(500,100)").attr("width",500).attr("height",300).attr("fill","#e5d123");
-	group.selectAll('rect').data(this.data).enter().append('rect').attr('width',50).attr('fill',"#0fddad").attr("transform","translate(100,0)").attr('x',function(d,i){return i*90}).attr('y',function(d,i){return 100-d.val}).transition().attr('height',function(d){return d.val});
-}
-}
-	}
+        else{
+            if(this.graphType=='line'){
+                
+		var barData = [15,255,355,768,765,823,245,728,315,88,174,85,96,512,44];
+            var yscale=d3.scaleLinear()
+                        .domain([0,1000])
+                        .range([0,height]);
+            var xscale=d3.scaleBand()
+                        .domain(d3.range(0,barData.length))
+                        .range([0,width]);
+            var tooltip=d3.select(this.el.nativeElement).append('div')
+                        .style('position','absolute')
+            .style('background','#fff')
+            .style('padding','10px')
+            .style('border','1px solid #aaa')
+            .style('opacity','0')
+            var group=this.canvas.append('g')
+             
+            var barGraph=group.selectAll('rect')
+                        .data(barData)
+                        .enter()
+                        .append('rect')
+                        .attr('width',xscale.bandwidth())
+                        .attr('fill',"#138989")
+                        .attr("transform","translate(20,0)")
+                        .attr('x',function(d,i){return xscale(i)})
+                        .attr('y',function(d,i){return (height)})
+                        .attr('height',0)
+                        .on('mouseover',function(d){
+                            tooltip.transition().style('opacity','1')
+                            tooltip.style('top',(d3.select(this).attr('y')-40+'px'))       
+                                    .style('left',(d3.select(this).attr('x')+'px'))  
+                                    .html(d)
+                            d3.select(this).style('opacity',0.5).style('cursor','pointer')
+                        }) .on('mouseout',function(d){
+                            tooltip.transition().style('opacity','0')
+                            d3.select(this).style('opacity',1)
+                        });
+                barGraph.transition().duration(1000).delay(function(d,i){return i*100}).attr('height',function(d){return yscale(d)}).attr('y',function(d,i){return (height-yscale(d))}).ease(d3.easeBounce)
+                var vscale=d3.scaleLinear()
+                        .domain([0,1000])
+                        .range([height,0]);
+                var hscale=d3.scaleBand()
+                        .domain(d3.range(1,barData.length))
+                        .range([1,width]);
+                
+                var vaxis=  d3.axisLeft()
+                            .scale(vscale)
+                            .ticks(5)
+                            .tickPadding(5)
+                 var haxis=  d3.axisBottom()
+                            .scale(hscale)
+                            .ticks(5)
+                            .tickPadding(5)
+                var vguide=this.canvas.append('g')
+                    vaxis(vguide)
+                vguide.attr('transform','translate(20,0)')
+                 var hguide=this.canvas.append('g')
+                    haxis(hguide)
+               hguide.attr('transform','translate(20,'+height+')')
+                }
+        }
+	   }
 	ngAfterViewInit() {
 		this.loadGraph();
 	}
